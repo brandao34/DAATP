@@ -163,6 +163,15 @@ age_labels = [60, 70, 80, 90] # VALOR MEDIO DO BIN
 df['Age'] = pd.cut(df['Age'], bins=age_bins, labels=age_labels).astype(int)
 df_test['Age'] = pd.cut(df_test['Age'], bins=age_bins, labels=age_labels).astype(int)
 
+###########################################################################################################################################
+# *? ########################################
+# *?  ELIMINAR LINHAS CN-MCI                #
+# *?                                        #
+# *? ########################################
+
+print(df.shape)
+df = df[df['Transition'] != 'CN-MCI']
+print(df.shape)
 
 ###########################################################################################################################################
 
@@ -174,14 +183,21 @@ df_1 = df.copy()
 df_1_test = df_test.copy()
 
 
+#label_mapping = {
+#    'CN-CN': 0,
+#    'AD-AD': 1,
+#    'CN-MCI': 2,
+#    'MCI-AD': 3,
+#    'MCI-MCI': 4
+#}
+
+
 label_mapping = {
     'CN-CN': 0,
     'AD-AD': 1,
-    'CN-MCI': 2,
-    'MCI-AD': 3,
-    'MCI-MCI': 4
+    'MCI-AD': 2,
+    'MCI-MCI': 3
 }
-
 # Apply the mapping to the target column
 df_1['Transition'] = df_1['Transition'].map(label_mapping)
 
