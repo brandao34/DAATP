@@ -18,9 +18,8 @@ def generate_predictions_csv(model: ClassifierMixin, test_data: pd.DataFrame):
     label_mapping = {
         0: 'CN-CN',
         1: 'AD-AD',
-        2: 'CN-MCI',
-        3: 'MCI-AD',
-        4: 'MCI-MCI'
+        2: 'MCI-AD',
+        3: 'MCI-MCI'
     }
     
     # Converter as previsões numéricas para as labels correspondentes

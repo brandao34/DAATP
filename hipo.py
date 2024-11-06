@@ -36,13 +36,16 @@ from sklearn.base import ClassifierMixin
 from xgboost import XGBClassifier
 import funcoes_suport
 from funcoes_suport import export_columns_by_group_with_newline_csv, correlation_by_group_to_csv
+from pycaret.classification import *
+from pycaret.datasets import get_data
+
 
 ######################
 #     CSV READERS    # 
 #                    #
 ######################
-df = pd.read_csv('train_radiomics_hipocamp.csv') 
-df_test = pd.read_csv('test_radiomics_hipocamp.csv')
+df = pd.read_csv('RawData/train_radiomics_hipocamp.csv') 
+df_test = pd.read_csv('RawData/test_radiomics_hipocamp.csv')
 #
 # 305 linhas por 2181 colunas 
 #
@@ -129,9 +132,10 @@ df_test = df_test.loc[:, df_test.nunique() > 1]
 # *? ########################################
 
 # Analisar a contagem de valores únicos para cada coluna categórica
-#for col in categorical_columns:
-#    print(f"\nColuna: {col}")
-#    print(df[col].value_counts())
+
+for col in categorical_columns:
+    print(f"\nColuna: {col}")
+    print(df[col].value_counts())
 
 #colunas_catagoricas_a_remover = ['ID', 'Image', 'Mask', 'diagnostics_Image-original_Hash', 'diagnostics_Mask-original_Hash'] 
 
@@ -173,6 +177,7 @@ print(df.shape)
 df = df[df['Transition'] != 'CN-MCI']
 print(df.shape)
 
+
 ###########################################################################################################################################
 
 # *? ########################################
@@ -182,14 +187,6 @@ print(df.shape)
 df_1 = df.copy()
 df_1_test = df_test.copy()
 
-
-#label_mapping = {
-#    'CN-CN': 0,
-#    'AD-AD': 1,
-#    'CN-MCI': 2,
-#    'MCI-AD': 3,
-#    'MCI-MCI': 4
-#}
 
 
 label_mapping = {
@@ -202,7 +199,7 @@ label_mapping = {
 df_1['Transition'] = df_1['Transition'].map(label_mapping)
 
 
-df_1
+
 
 
 #export_columns_by_group_with_newline_csv(df_1, 'columns_by_group.csv')
@@ -228,7 +225,7 @@ df_1_filtered = df_1.drop(columns=low_correlation_columns)
 df_1_filtered_test = df_1_test.drop(columns=low_correlation_columns)
 
 # Exibir o número de colunas removidas
-print(f"Número de colunas removidas: {num_removed_columns}")
+#print(f"Número de colunas removidas: {num_removed_columns}")
 
 
 
@@ -243,6 +240,7 @@ groups_to_remove = [
     'log-sigma-5-0',
     'square_',
     'exponential'
+
 ]
 
 # Encontrar colunas que começam com os grupos especificados
@@ -255,111 +253,15 @@ num_removed_columns = len(columns_to_remove)
 df_1_final = df_1_filtered.drop(columns=columns_to_remove)
 df_1_final_test = df_1_filtered_test.drop(columns=columns_to_remove)
 
+
 # Exibir o número de colunas removidas
-print(f"Número de colunas removidas: {num_removed_columns}")
+#print(f"Número de colunas removidas: {num_removed_columns}")
 
 
 
 
 ###########################################################################################################################################
-#
-## *? ########################################
-## *?   COLUNAS CORRELACIONADAS   ENTRE SIM  #
-## *?                                        #
-## *TODO     ISTO NAO ESTA CERTO             #
-## *TODO     MAS é UM ponto de PARTIDA       #    
-## *? ########################################
-#
-#df1 = df.copy()
-#df1_test = df_test.copy()
-#
-## Calcular a matriz de correlação
-#correlation_matrix = df1.corr(numeric_only=True).abs()
-#
-## Selecionar os pares de colunas com correlação maior que 0.95 (95%) e abaixo de 1 (evita self-correlation)
-#high_corr_pairs = [
-#    (col1, col2) 
-#    for col1 in correlation_matrix.columns 
-#    for col2 in correlation_matrix.columns 
-#    if col1 != col2 and correlation_matrix.loc[col1, col2] > 0.95
-#]
-#
-## Remover duplicatas de pares (já que A-B é o mesmo que B-A)
-#high_corr_pairs = list(set(tuple(sorted(pair)) for pair in high_corr_pairs))
-#
-## Exibir os pares de colunas com alta correlação
-##print("Pares de colunas com correlação > 90%:")
-##for pair in high_corr_pairs:
-## print(pair)
-#
-#
-#
-#colunas_a_remover = set()
-#colunas_nao_remover = set()
-#
-## Contar a frequência de cada coluna nos pares correlacionados
-#column_counts = Counter()
-#for col1, col2 in high_corr_pairs:
-#    column_counts[col1] += 1
-#    column_counts[col2] += 1
-#
-## Identificar as colunas a serem removidas
-#for col1, col2 in high_corr_pairs:
-#    # Verificar se col1 já está marcado para não ser removido
-#    if col1 in colunas_nao_remover:
-#        colunas_a_remover.add(col2)
-#        colunas_nao_remover.add(col1)
-#    elif col2 in colunas_nao_remover:
-#        colunas_a_remover.add(col1)
-#        colunas_nao_remover.add(col2)
-#    else:
-#        # Comparar as contagens e remover a coluna que aparece mais vezes
-#        if column_counts[col1] > column_counts[col2]:
-#            colunas_a_remover.add(col1)
-#            colunas_nao_remover.add(col2)
-#        else:
-#            colunas_a_remover.add(col2)
-#            colunas_nao_remover.add(col1)
-#
-## Remover qualquer coluna de colunas_a_remover que esteja em colunas_nao_remover
-#colunas_a_remover -= colunas_nao_remover
-#
-#
-##print(column_counts.total())
-## Remover as colunas do DataFrame
-#df1.drop(columns=colunas_a_remover, axis=1 ,inplace= True) 
-#df1_test.drop(columns=colunas_a_remover, axis=1 ,inplace= True) 
-#num_colunas_removidas = len(colunas_a_remover)
-##print(num_colunas_removidas)
-#
-#
-#
-#
-#
-## Apos remover as colunas com 95 porcento de correlacao, temos 1045 colunas 
-#
-#
-############################################################################################################################################
-#
-## *? ########################################
-## *?   Remover a imagem original            #
-## *?                                        #
-## *TODO     Not sure se isto faz sentido    #
-## *TODO     MAS é UM ponto de PARTIDA       #    
-## *? ########################################
-#
-#df2 = df1.copy()
-#df2_test = df1_test.copy()
-#
-#df2 = df2.loc[:, ~df2.columns.str.startswith('original')]
-#df2_test = df2_test.loc[:, ~df2_test.columns.str.startswith('original')]
-#
-#
-#print(df2.shape)
-#
-############################################################################################################################################
-#
-#
+
 #
 #
 ############################################################################################################################################
@@ -388,7 +290,8 @@ else:
 
 # Print current best score and model name
 print(f"Current Best Score Stored: {best_score_ever * 100:.20f}%")
-print(f"Model with Best Score: {best_model_name}")
+print(f"Model with Best Score: {best_model_name}\n")
+
 
 
 
@@ -403,16 +306,12 @@ print(f"Model with Best Score: {best_model_name}")
 data_model = df_1_final; 
 Dataset_test = df_1_final_test; 
 
-#label_mapping = {
-#    'CN-CN': 0,
-#    'AD-AD': 1,
-#    'CN-MCI': 2,
-#    'MCI-AD': 3,
-#    'MCI-MCI': 4
-#}
-#
-## Apply the mapping to the target column
-#data_model['Transition'] = data_model['Transition'].map(label_mapping)
+
+
+experiment = setup(df_1_final, target='Transition')
+
+
+best = compare_models()
 
 # Split data
 X = data_model.drop('Transition', axis=1)
@@ -477,8 +376,7 @@ print("Average Random Forest Accuracy: %.2f%%" % (random_forest_cross_val_score.
 print()
 
 
-#random_forest_predictions = random_forest_model.predict(X_test)
-#print(classification_report(y_test, random_forest_predictions))
+
 # *! ####################################################
 # *! XGBOOST 
 
@@ -489,6 +387,7 @@ xgBoost_model = XGBClassifier(n_estimators=800, max_depth=4, learning_rate=0.05,
                             colsample_bytree=0.4, subsample=0.8, random_state=2022)
 xgBoost_model.fit(X_train, y_train)
 
+#gBoost_cross_val_score = cross_val_score(xgBoost_model, X, y, cv=10)
 
 xgBoost_score = xgBoost_model.score(X_test,y_test)
 
@@ -499,10 +398,8 @@ if xgBoost_score > best_score :
 
 
 print("XGBOOST Acurracy: %.2f%%" % (xgBoost_score * 100))
-
-# ** xgBoost_cross_val_score = cross_val_score(xgBoost_model, X, y, cv=10)
-# ** print("Average XGBOOST Accuracy: %.2f%%" % (xgBoost_cross_val_score.mean() * 100))
-# ** print()
+#print("Average XGBOOST Accuracy: %.2f%%" % (xgBoost_cross_val_score.mean() * 100))
+print()
 
 
 # *! ####################################################
@@ -544,7 +441,17 @@ print("XGBOOST Acurracy: %.2f%%" % (xgBoost_score * 100))
 # *?                                        #
 # *? ########################################
 
-# If the new best score is higher, update the file
+
+
+
+if best_score > best_score_ever:
+# *!                                          MODELO          Dataset de testes  
+    funcoes_suport.generate_predictions_csv(modelo_escolhido,      Dataset_test         )# If the new best score is higher, update the file
+
+
+
+
+
 if best_score > best_score_ever:
     with open(best_score_file, 'w') as file:
         file.write(f"{best_score}\n")  # Write the best score on the first line
@@ -555,9 +462,6 @@ else:
 
 
 
-if best_score > best_score_ever:
-# *!                                          MODELO          Dataset de testes  
-    funcoes_suport.generate_predictions_csv(modelo_escolhido,      Dataset_test         )
 
 
 
