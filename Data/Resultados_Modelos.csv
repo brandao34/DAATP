@@ -1,0 +1,3 @@
+Dataset,Modelo,Average_Accuracy,Kaggle_score,Notas 
+1._Dataset_Competicao.csv,Extra-Trees, 46.83, 0.43167,  --
+1._Dataset_Competicao.csv,Random-Forest, 46.14, - , --

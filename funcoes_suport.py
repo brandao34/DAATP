@@ -19,7 +19,9 @@ def generate_predictions_csv(model: ClassifierMixin, test_data: pd.DataFrame):
         0: 'CN-CN',
         1: 'AD-AD',
         2: 'MCI-AD',
-        3: 'MCI-MCI'
+        3: 'MCI-MCI',
+#        4:  'CN-MCI'
+
     }
     
     # Converter as previsões numéricas para as labels correspondentes
@@ -45,6 +47,38 @@ def generate_predictions_csv(model: ClassifierMixin, test_data: pd.DataFrame):
     # Salvar o DataFrame em um arquivo CSV
     predictions_df.to_csv(output_filename, index=True)
     print(f"Resultados salvos no arquivo {output_filename}")
+
+
+import os
+
+def load_best_score():
+    # Path to the file that stores the best score
+    best_score_file = 'best_score.txt'
+
+    # Initialize default values
+    best_score_ever = 0.0
+    best_model_name = "N/A"
+
+    # Check if the file exists and load the stored best score and model name
+    if os.path.exists(best_score_file):
+        with open(best_score_file, 'r') as file:
+            lines = file.readlines()
+            best_score_ever = float(lines[0].strip())
+            best_model_name = lines[1].strip() if len(lines) > 1 else "N/A"
+
+    # Print current best score and model name
+    print(f"Current Best Score Stored: {best_score_ever * 100:.20f}%")
+    print(f"Model with Best Score: {best_model_name}\n")
+
+    return best_score_ever, best_model_name
+
+
+
+
+
+
+
+
 
 
 def export_columns_by_group_with_newline_csv(dataset: pd.DataFrame, output_filename: str = 'columns_by_group.csv'):

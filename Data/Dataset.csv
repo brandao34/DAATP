@@ -1,0 +1,3 @@
+Data_Name, Notas, n1,n2,n3,n4,n5,n6 
+1._Dataset_Competicao.csv, Tratamento Default , remocao de colunas por correlacao, remocao dos piroes grupos por correlacao, Correlacao 0.09 sendo que o melhor de sempre foi com 0.1
+2._Dataset_Normalizado.csv, Tratamento Default, Normalizacao com MinMax

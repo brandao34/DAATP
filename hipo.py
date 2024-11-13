@@ -5,7 +5,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestClassifier, StackingClassifier
+from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier, StackingClassifier
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.metrics import recall_score
 from sklearn.metrics import accuracy_score
@@ -17,7 +17,7 @@ from sklearn.metrics import fbeta_score
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import root_mean_squared_error
-from sklearn.preprocessing import KBinsDiscretizer
+from sklearn.preprocessing import KBinsDiscretizer, MinMaxScaler
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -36,8 +36,10 @@ from sklearn.base import ClassifierMixin
 from xgboost import XGBClassifier
 import funcoes_suport
 from funcoes_suport import export_columns_by_group_with_newline_csv, correlation_by_group_to_csv
-from pycaret.classification import *
-from pycaret.datasets import get_data
+from imblearn.over_sampling import SMOTE
+from imblearn.under_sampling import RandomUnderSampler
+from imblearn.over_sampling import SMOTE
+from imblearn.pipeline import Pipeline
 
 
 ######################
@@ -132,10 +134,10 @@ df_test = df_test.loc[:, df_test.nunique() > 1]
 # *? ########################################
 
 # Analisar a contagem de valores únicos para cada coluna categórica
-
-for col in categorical_columns:
-    print(f"\nColuna: {col}")
-    print(df[col].value_counts())
+#
+#for col in categorical_columns:
+#    print(f"\nColuna: {col}")
+#    print(df[col].value_counts())
 
 #colunas_catagoricas_a_remover = ['ID', 'Image', 'Mask', 'diagnostics_Image-original_Hash', 'diagnostics_Mask-original_Hash'] 
 
@@ -178,33 +180,59 @@ df = df[df['Transition'] != 'CN-MCI']
 print(df.shape)
 
 
+
+label_mapping = {
+    'CN-CN': 0,
+    'AD-AD': 1,
+    'MCI-AD': 2,
+    'MCI-MCI': 3, 
+#    'CN-MCI' : 4
+
+}
+
+
+# Apply the mapping to the target column
+df['Transition'] = df['Transition'].map(label_mapping)
+
+###########################################################################################################################################
+# *? ########################################
+# *? Normalização 
+# *?
+# *?
+# *? ########################################
+
+
+df_normalizado = df.copy()
+df_normalizado_test = df_test.copy()
+
+## Armazenar a coluna 'Transition'
+transition_column = df_normalizado['Transition']
+
+# Selecionar as colunas para normalização (todas menos 'Transition')
+features = df_normalizado.drop(columns='Transition')
+
+# Normalizar as colunas selecionadas
+scaler = MinMaxScaler()
+df_normalizado[features.columns] = scaler.fit_transform(features)
+df_normalizado_test_scaled = scaler.transform(df_normalizado_test)
+df_normalizado_test = pd.DataFrame(df_normalizado_test_scaled, columns=df_normalizado_test.columns)
+# Adicionar a coluna 'Transition' de volta
+df_normalizado['Transition'] = transition_column
+
+
+
 ###########################################################################################################################################
 
 # *? ########################################
 # *?   COLUNAS CORRELACIONADAS   ENTRE SIM  #
 # *?                                        #   
 # *? ########################################
+
+
+
+
 df_1 = df.copy()
 df_1_test = df_test.copy()
-
-
-
-label_mapping = {
-    'CN-CN': 0,
-    'AD-AD': 1,
-    'MCI-AD': 2,
-    'MCI-MCI': 3
-}
-# Apply the mapping to the target column
-df_1['Transition'] = df_1['Transition'].map(label_mapping)
-
-
-
-
-
-#export_columns_by_group_with_newline_csv(df_1, 'columns_by_group.csv')
-
-#corr = correlation_by_group_to_csv(df_1,'Transition', 'corr_by_g')
 
 
 # *? REMOÇÃO DE COLUNAS COM POUCO CORRELACAO COM O TARGET
@@ -250,20 +278,30 @@ columns_to_remove = [col for col in df_1_filtered.columns if any(col.startswith(
 num_removed_columns = len(columns_to_remove)
 
 # Remover as colunas do DataFrame
+
 df_1_final = df_1_filtered.drop(columns=columns_to_remove)
 df_1_final_test = df_1_filtered_test.drop(columns=columns_to_remove)
 
 
-# Exibir o número de colunas removidas
-#print(f"Número de colunas removidas: {num_removed_columns}")
 
 
 
 
 ###########################################################################################################################################
 
-#
-#
+# *? ##########################
+# *? IMPRESSAO DATASET 
+# *?
+# *? ##########################
+
+
+
+#df_1_final.to_csv('Data/1. Dataset Competicao.csv', index=False)
+#df_1_final_test.to_csv('Data/1. Dataset Test Competicao.csv', index=False)
+
+
+
+
 ############################################################################################################################################
 #
 ## *! ######################
@@ -308,17 +346,35 @@ Dataset_test = df_1_final_test;
 
 
 
-experiment = setup(df_1_final, target='Transition')
+print(data_model.shape)
+print(Dataset_test.shape)
 
 
-best = compare_models()
 
 # Split data
 X = data_model.drop('Transition', axis=1)
 y = data_model['Transition']
+print("Original:")
+print(y.value_counts())
+#undersample = RandomUnderSampler(sampling_strategy={0: 60, 3: 60, 2: 60, 1: 60}, random_state=2022)
+#smote = SMOTE(sampling_strategy={0: 60, 1: 60, 2: 60, 3: 60}, random_state=2022)
+#
+## Crie o pipeline com undersampling seguido por SMOTE
+#pipeline = Pipeline([
+#    ('undersample', undersample),  # Reduz classes para 60 onde houver excesso
+#    ('smote', smote)               # Aumenta classes para 60 onde houver necessidade
+#])
+#
+## Aplicar o pipeline aos dados
+#X_res, y_res = pipeline.fit_resample(X, y)
+#smote = SMOTE(random_state=2022)
+#X_res, y_res = smote.fit_resample(X, y)
 
-# Train-test split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random_state=2022)
+
+#print('Resampled dataset shape %s %s' % X_res.shape,y_res.shape)
+#print(y_res.value_counts())
+#X_train, X_test, y_train, y_test = train_test_split(X_res, y_res, test_size=0.25, random_state=2022, stratify=y_res)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=2022, stratify=y)
 
 
 
@@ -346,16 +402,16 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random
 # Decision Tree Model
 decision_tree_model = DecisionTreeClassifier(random_state=2022)
 decision_tree_model.fit(X_train, y_train)
-# ** decision_tree_cross_val_score = cross_val_score(decision_tree_model, X, y, cv=10)
+decision_tree_cross_val_score = cross_val_score(decision_tree_model, X, y, cv=10)
 decision_tree_score = decision_tree_model.score(X_test,y_test)
 
-if decision_tree_score > best_score : 
-    best_score = decision_tree_score
+if decision_tree_cross_val_score.mean() > best_score : 
+    best_score = decision_tree_cross_val_score.mean()
     modelo_escolhido = decision_tree_model
 
 
 print("Decision Tree Scores: %.2f%%" % (decision_tree_score * 100))
-# **print("Average Decision Tree Accuracy: %.2f%%" % (decision_tree_cross_val_score.mean() * 100))
+print("Average Decision Tree Accuracy: %.2f%%" % (decision_tree_cross_val_score.mean() * 100))
 print()
 
 # *! ####################################################
@@ -367,8 +423,8 @@ random_forest_model.fit(X_train, y_train)
 random_forest_cross_val_score = cross_val_score(random_forest_model, X, y, cv=10)
 random_forest_score = random_forest_model.score(X_test,y_test)
 
-if random_forest_score > best_score : 
-    best_score = random_forest_score
+if random_forest_cross_val_score.mean() > best_score : 
+    best_score = random_forest_cross_val_score.mean()
     modelo_escolhido = random_forest_model
 
 print("Random Forest Scores: %.2f%%" % (random_forest_score * 100))
@@ -387,19 +443,38 @@ xgBoost_model = XGBClassifier(n_estimators=800, max_depth=4, learning_rate=0.05,
                             colsample_bytree=0.4, subsample=0.8, random_state=2022)
 xgBoost_model.fit(X_train, y_train)
 
-#gBoost_cross_val_score = cross_val_score(xgBoost_model, X, y, cv=10)
+xgBoost_cross_val_score = cross_val_score(xgBoost_model, X, y, cv=10)
 
 xgBoost_score = xgBoost_model.score(X_test,y_test)
 
 
-if xgBoost_score > best_score : 
-    best_score = xgBoost_score
+if xgBoost_cross_val_score.mean() > best_score : 
+    best_score = xgBoost_cross_val_score.mean()
     modelo_escolhido = xgBoost_model
 
 
 print("XGBOOST Acurracy: %.2f%%" % (xgBoost_score * 100))
-#print("Average XGBOOST Accuracy: %.2f%%" % (xgBoost_cross_val_score.mean() * 100))
+print("Average XGBOOST Accuracy: %.2f%%" % (xgBoost_cross_val_score.mean() * 100))
 print()
+
+
+# *! ######################################################
+
+extra_tress_model = ExtraTreesClassifier(criterion='gini', max_depth=20, random_state=2022)
+extra_tress_model.fit(X_train, y_train)
+
+extra_tress_cross_val_score = cross_val_score(extra_tress_model, X,y, cv=10 )
+extra_tress_score = extra_tress_model.score(X_test,y_test)
+
+if extra_tress_cross_val_score.mean() > best_score : 
+    best_score = extra_tress_cross_val_score.mean()
+    modelo_escolhido = extra_tress_model
+
+
+print("Extra Trees Acurracy: %.2f%%" % (extra_tress_score * 100))
+print("Average Extra Trees Accuracy: %.2f%%" % (extra_tress_cross_val_score.mean() * 100))
+print()
+
 
 
 # *! ####################################################
