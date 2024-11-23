@@ -6,6 +6,7 @@ import numpy as np
 import seaborn as sns
 
 import pandas as pd
+from sklearn.base import ClassifierMixin
 
 def load_best_score():
     # Path to the file that stores the best score
@@ -56,3 +57,49 @@ def plot_confusion_matrix_with_labels(confusion_matrix):
     plt.ylabel('True')
     plt.title('Confusion Matrix with Labels')
     plt.show()
+
+def generate_predictions_csv(model: ClassifierMixin, test_data: pd.DataFrame):
+    """
+    Gera um arquivo CSV com as previsões do modelo fornecido e o conjunto de teste.
+
+    Parameters:
+    - model: Classificador treinado (ex: RandomForestClassifier, DecisionTreeClassifier).
+    - test_data: DataFrame de teste para o qual as previsões serão feitas.
+    - output_filename: Nome do arquivo de saída para salvar as previsões (padrão é 'predictions.csv').
+    """
+    # Realizar as previsões
+    predictions = model.predict(test_data)
+    
+    # Mapeamento inverso para converter de números para labels
+    label_mapping = {
+        0: 'CN-CN',
+        1: 'AD-AD',
+        2: 'MCI-AD',
+        3: 'MCI-MCI',
+#        4:  'CN-MCI'
+
+    }
+    
+    # Converter as previsões numéricas para as labels correspondentes
+    predictions_labels = [label_mapping[pred] for pred in predictions]
+    
+    # Criar DataFrame com as previsões
+    predictions_df = pd.DataFrame(predictions_labels, columns=['Result'])
+    predictions_df.index = range(1, len(predictions_df) + 1)
+    predictions_df.index.name = 'RowId'
+    
+    # Exibir a contagem de cada label prevista
+    counts = predictions_df['Result'].value_counts()
+    print("Contagem de previsões para cada label:")
+    print(counts)
+    
+    # Extrair o nome do modelo para o arquivo de saída
+    model_name = str(model)  
+    if '(' in model_name:
+        output_filename = model_name.split('(')[0] + ".csv"
+    else:
+        output_filename = model_name + ".csv"
+    
+    # Salvar o DataFrame em um arquivo CSV
+    predictions_df.to_csv(output_filename, index=True)
+    print(f"Resultados salvos no arquivo {output_filename}")
