@@ -20,7 +20,7 @@ def generate_predictions_csv(model: ClassifierMixin, test_data: pd.DataFrame):
         1: 'AD-AD',
         2: 'MCI-AD',
         3: 'MCI-MCI',
-#        4:  'CN-MCI'
+        4:  'CN-MCI'
 
     }
     

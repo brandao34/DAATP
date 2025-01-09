@@ -1,5 +1,8 @@
 {
     "cSpell.words": [
         "Corregindo"
+    ],
+    "python.analysis.extraPaths": [
+        "./Modelos"
     ]
 }
